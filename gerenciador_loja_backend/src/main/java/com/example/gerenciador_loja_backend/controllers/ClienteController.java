@@ -63,6 +63,7 @@ public class ClienteController {
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
+
     @DeleteMapping("/clientes/{id}")
     public ResponseEntity<String> deleteCliente(@PathVariable UUID id) {
         boolean deletado = clienteService.deletarCliente(id);

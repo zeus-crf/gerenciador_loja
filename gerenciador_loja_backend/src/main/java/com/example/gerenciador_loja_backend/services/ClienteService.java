@@ -38,12 +38,19 @@ public class ClienteService {
 
     // Atualizar cliente
     public Optional<Cliente> atualizarCliente(UUID id, ClienteDto clienteDto) {
-        Optional<Cliente> clienteO = clienteRepository.findById(id);
-        if (clienteO.isEmpty()) {
+        Optional<Cliente> clienteOpt = clienteRepository.findById(id);
+        if (clienteOpt.isEmpty()) {
             return Optional.empty();
         }
-        Cliente cliente = clienteO.get();
-        BeanUtils.copyProperties(clienteDto, cliente);
+
+        Cliente cliente = clienteOpt.get();
+
+        if (clienteDto.name() != null) cliente.setName(clienteDto.name());
+        if (clienteDto.telefone() != null) cliente.setTelefone(clienteDto.telefone());
+        if (clienteDto.email() != null) cliente.setEmail(clienteDto.email());
+        if (clienteDto.endereco() != null) cliente.setEndereco(clienteDto.endereco());
+        if (clienteDto.notas() != null) cliente.setNotas(clienteDto.notas());
+
         return Optional.of(clienteRepository.save(cliente));
     }
 
