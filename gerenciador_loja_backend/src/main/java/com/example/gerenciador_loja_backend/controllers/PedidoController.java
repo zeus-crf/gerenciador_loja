@@ -3,11 +3,17 @@ package com.example.gerenciador_loja_backend.controllers;
 import com.example.gerenciador_loja_backend.dtos.PedidoDto;
 import com.example.gerenciador_loja_backend.models.Pedido;
 import com.example.gerenciador_loja_backend.services.PedidoService;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 public class PedidoController {
@@ -18,33 +24,53 @@ public class PedidoController {
         this.pedidoService = pedidoService;
     }
 
-    // Criar pedido
+
     @PostMapping("/pedidos")
-    public ResponseEntity<Pedido> criarPedido(@RequestBody PedidoDto pedidoDto) {
-        Pedido pedido = pedidoService.criarPedido(pedidoDto);
-        return ResponseEntity.ok(pedido);
+    public ResponseEntity<Object> criarPedido(@RequestBody PedidoDto pedidoDto) {
+        return pedidoService.criarPedido(pedidoDto);
     }
 
-    // Listar todos os pedidos
+
     @GetMapping("/pedidos")
-    public ResponseEntity<List<Pedido>> listarPedidos() {
+    public ResponseEntity<CollectionModel<EntityModel<Pedido>>> listarPedidos() {
+
         List<Pedido> pedidos = pedidoService.getAllPedidos();
-        return ResponseEntity.ok(pedidos);
+
+        List<EntityModel<Pedido>> pedidoModels = pedidos.stream()
+                .map(pedido -> EntityModel.of(
+                        pedido,
+                        linkTo(methodOn(PedidoController.class).buscarPedido(pedido.getId())).withSelfRel()
+                ))
+                .toList();
+
+        CollectionModel<EntityModel<Pedido>> collectionModel = CollectionModel.of(
+                pedidoModels,
+                linkTo(methodOn(PedidoController.class).listarPedidos()).withSelfRel()
+        );
+
+        return ResponseEntity.ok(collectionModel);
     }
 
-    // Buscar pedido por ID
+
+
     @GetMapping("/pedidos/{id}")
     public ResponseEntity<Object> buscarPedido(@PathVariable UUID id) {
         return pedidoService.getOnePedido(id);
     }
 
-    // Editar pedido
+
     @PutMapping("/pedidos/{id}")
     public ResponseEntity<Object> editarPedido(@PathVariable UUID id, @RequestBody PedidoDto pedidoDto) {
         return pedidoService.editPedido(id, pedidoDto);
     }
 
-    // Deletar pedido
+
+    @PutMapping("/pedidos/{id}/diminuir-parcela")
+    public ResponseEntity<Object> diminuirParcela(@PathVariable UUID id) {
+        return pedidoService.diminuirParcela(id);
+    }
+
+
     @DeleteMapping("/pedidos/{id}")
     public ResponseEntity<Object> deletarPedido(@PathVariable UUID id) {
         return pedidoService.deletePedido(id);
