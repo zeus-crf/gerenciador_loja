@@ -1,74 +1,92 @@
 package com.example.gerenciador_loja_backend.models;
 
 import com.example.gerenciador_loja_backend.enuns.StatusDePagamento;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import org.springframework.hateoas.RepresentationModel;
-
-import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "TB_PEDIDOS")
-public class Pedido extends RepresentationModel<Pedido> implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+@Table(name = "pedido")
+public class Pedido {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
     private UUID id;
+
+    private LocalDateTime dataCriacao = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-    @ElementCollection
-    @CollectionTable(name = "pedido_itens", joinColumns = @JoinColumn(name = "pedido_id"))
-    @Column(name = "item")
-    private List<String> itensList;
+    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ItemPedido> itens = new ArrayList<>();
+
+    private Double valorTotal;
+
+    private Integer parcelasTotais;
+
+    private Integer parcelasRestantes;
+
+    private double valorParcelas;
 
     @Enumerated(EnumType.STRING)
     private StatusDePagamento statusDePagamento;
 
-    private Integer parcelasRestantes;
+    // ===============================
+    // GETTERS E SETTERS
+    // ===============================
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public UUID getId() {
-        return id;
+    public LocalDateTime getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+
+    public Cliente getCliente() { return cliente; }
+    public void setCliente(Cliente cliente) { this.cliente = cliente; }
+
+    public List<ItemPedido> getItens() { return itens; }
+    public void setItens(List<ItemPedido> itens) {
+        this.itens.clear();
+        if (itens != null) {
+            itens.forEach(this::addItem);
+        }
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public Double getValorTotal() { return valorTotal; }
+    public void setValorTotal(Double valorTotal) { this.valorTotal = valorTotal; }
+
+    public Integer getParcelasTotais() { return parcelasTotais; }
+    public void setParcelasTotais(Integer parcelasTotais) { this.parcelasTotais = parcelasTotais; }
+
+    public Integer getParcelasRestantes() { return parcelasRestantes; }
+    public void setParcelasRestantes(Integer parcelasRestantes) { this.parcelasRestantes = parcelasRestantes; }
+
+    public StatusDePagamento getStatusDePagamento() { return statusDePagamento; }
+    public void setStatusDePagamento(StatusDePagamento statusDePagamento) { this.statusDePagamento = statusDePagamento; }
+
+    public double getValorParcelas() {
+        return valorParcelas;
     }
 
-    public Cliente getCliente() {
-        return cliente;
+    public void setValorParcelas(double valorParcelas) {
+        this.valorParcelas = valorParcelas;
     }
 
-    public void setCliente(Cliente cliente) {
-        this.cliente = cliente;
+    // ===============================
+    // MÉTODOS DE CONVENIÊNCIA
+    // ===============================
+    public void addItem(ItemPedido item) {
+        itens.add(item);
+        item.setPedido(this);
     }
 
-    public List<String> getItensList() {
-        return itensList;
-    }
-
-    public void setItensList(List<String> itensList) {
-        this.itensList = itensList;
-    }
-
-    public StatusDePagamento getStatusDePagamento() {
-        return statusDePagamento;
-    }
-
-    public void setStatusDePagamento(StatusDePagamento statusDePagamento) {
-        this.statusDePagamento = statusDePagamento;
-    }
-
-    public Integer getParcelasRestantes() {
-        return parcelasRestantes;
-    }
-
-    public void setParcelasRestantes(Integer parcelasRestantes) {
-        this.parcelasRestantes = parcelasRestantes;
+    public void removeItem(ItemPedido item) {
+        itens.remove(item);
+        item.setPedido(null);
     }
 }
