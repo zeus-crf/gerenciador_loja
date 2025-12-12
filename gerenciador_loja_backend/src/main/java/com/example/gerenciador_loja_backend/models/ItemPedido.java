@@ -14,6 +14,7 @@ public class ItemPedido {
     private String nomeProduto;
     private Integer quantidade;
     private Double precoUnitario;
+    private String tamanho;
 
     @ManyToOne
     @JoinColumn(name = "pedido_id")
@@ -22,6 +23,14 @@ public class ItemPedido {
     // Getters e Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
+    public String getTamanho() {
+        return tamanho;
+    }
+
+    public void setTamanho(String tamanho) {
+        this.tamanho = tamanho;
+    }
 
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }

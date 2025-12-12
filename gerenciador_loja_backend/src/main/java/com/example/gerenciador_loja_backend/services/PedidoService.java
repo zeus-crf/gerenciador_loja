@@ -50,6 +50,7 @@ public class PedidoService {
             item.setNomeProduto(i.nome());
             item.setPrecoUnitario(i.preco());
             item.setQuantidade(i.quantidade());
+            item.setTamanho(i.tamanho());
             item.setPedido(pedido);
             return item;
         }).collect(Collectors.toList());
@@ -95,20 +96,37 @@ public class PedidoService {
 
         Pedido pedido = pedidoOpt.get();
 
+        // Atualiza itens
         if (dto.itens() != null) {
-            List<ItemPedido> itens = dto.itens().stream().map(i -> {
-                ItemPedido item = new ItemPedido();
-                item.setNomeProduto(i.nome());
-                item.setPrecoUnitario(i.preco());
-                item.setQuantidade(i.quantidade());
-                item.setPedido(pedido);
-                return item;
-            }).collect(Collectors.toList());
-            pedido.setItens(itens);
+            for (ItemPedidoDto itemDto : dto.itens()) {
+                if (itemDto.id() != null) {
+                    // Atualiza item existente
+                    pedido.getItens().stream()
+                            .filter(i -> i.getId().equals(itemDto.id()))
+                            .findFirst()
+                            .ifPresent(i -> {
+                                if (itemDto.nome() != null) i.setNomeProduto(itemDto.nome());
+                                if (itemDto.preco() != null) i.setPrecoUnitario(itemDto.preco());
+                                if (itemDto.quantidade() != null) i.setQuantidade(itemDto.quantidade());
+                                if (itemDto.tamanho() != null) i.setTamanho(itemDto.tamanho());
+                            });
+                } else {
+                    // Cria novo item
+                    ItemPedido novoItem = new ItemPedido();
+                    novoItem.setNomeProduto(itemDto.nome());
+                    novoItem.setPrecoUnitario(itemDto.preco());
+                    novoItem.setQuantidade(itemDto.quantidade());
+                    novoItem.setTamanho(itemDto.tamanho());
+                    novoItem.setPedido(pedido);
+                    pedido.getItens().add(novoItem);
+                }
+            }
+
             calcularValorTotal(pedido); // recalcula valor total
             calcularValorParcela(pedido); // recalcula o valor da parcela
         }
 
+        // Atualiza parcelas totais
         if (dto.parcelasTotais() != null) {
             if (dto.parcelasTotais() < pedido.getParcelasTotais()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -117,6 +135,7 @@ public class PedidoService {
             pedido.setParcelasTotais(dto.parcelasTotais());
         }
 
+        // Atualiza parcelas restantes
         if (dto.parcelasRestantes() != null) {
             if (dto.parcelasRestantes() < 0) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -133,6 +152,8 @@ public class PedidoService {
 
         return ResponseEntity.ok(pedidoRepository.save(pedido));
     }
+
+
 
     // ============================================================
     // DIMINUIR 1 PARCELA

@@ -1,6 +1,9 @@
 package com.example.gerenciador_loja_backend.dtos;
 
+import java.util.UUID;
+
 public record ItemPedidoDto(
+        UUID id,
         String nome,
         Double preco,
         String tamanho,
