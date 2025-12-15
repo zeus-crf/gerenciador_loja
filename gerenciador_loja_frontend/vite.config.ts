@@ -1,7 +1,19 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+// vite.config.ts
+import { fileURLToPath, URL } from 'node:url'; // Necessário
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue'; // Importado
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
-})
+    // 🎯 ADICIONANDO O ARRAY DE PLUGINS
+    plugins: [
+        vue(), // <-- AGORA O PLUGIN ESTÁ ATIVADO!
+    ],
+
+    
+    // ...
+    resolve: {
+        alias: {
+            '@': fileURLToPath(new URL('./src', import.meta.url)) 
+        }
+    }
+});
