@@ -5,6 +5,8 @@ import { login } from '@/services/authService'
 
 const props = defineProps<{
     disabled?: boolean;
+    placeholder?: string;
+    class?:string
 }>();
 
 
@@ -13,10 +15,9 @@ const props = defineProps<{
     <button
             type="submit"
             :disabled="disabled"
-            class="flex w-full items-center justify-center rounded-lg h-12 bg-primary 
-                   hover:bg-primary-hover active:scale-[0.99] transition-all font-bold"
+            :class="class"
         >
-            <span v-if="!disabled">Entrar</span>
+            <span v-if="!disabled">{{ props.placeholder }}</span>
             <span v-else class="animate-pulse">Autenticando...</span>
             <span class="material-symbols-outlined ml-2"></span>
         </button>

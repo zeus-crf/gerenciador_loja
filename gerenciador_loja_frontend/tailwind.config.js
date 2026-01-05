@@ -7,20 +7,20 @@ export default {
     theme: {
         extend: {
             colors: { 
-                "primary": "#11d493", 
+                "primary": "#1976D2", 
                 "primary-hover": "#0fb880", 
                 "primary-dark": "#0a8a60", 
                 "background-light": "#f6f8f7", 
                 "background-dark": "#10221c", 
                 "surface-light": "#ffffff", 
                 "surface-dark": "#162e26", 
-                "text-main": "#0d1b17", 
-                "text-muted": "#4c9a80", 
-            }, // <-- VÍRGULA ADICIONADA AQUI
+                "text-main": "#171717ff", 
+                "text-muted": "#202120ff", 
+            },
 
             fontFamily: { 
                 "display": ["Inter", "sans-serif"] 
-            }, // <-- VÍRGULA ADICIONADA AQUI
+            },
             
             borderRadius: { 
                 "DEFAULT": "0.25rem", 
@@ -29,6 +29,6 @@ export default {
                 "full": "9999px" 
             },
         },
-    }, // <-- Corrigido: Não há mais um fechamento extra aqui
+    }, 
     plugins: [],
 }
