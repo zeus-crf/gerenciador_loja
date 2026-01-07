@@ -2,19 +2,18 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
-import { Plus } from 'lucide-vue-next'
 
-// Layout
+// Components
 import Sidebar from '@/components/layout/Sidebar.vue'
 import HeaderPage from '@/components/layout/HeaderPage.vue'
 import SearchInput from '@/components/layout/SearchInput.vue'
 import TableUsuarios from '@/components/TableUsuarios.vue'
 
-// Modais
 import ModalNewUsuario from '@/components/modais/ModalNewUsuario.vue'
 import ModalEditUsuario from '@/components/modais/ModalEditUsuario.vue'
 import ModalDeleteUsuario from '@/components/modais/ModalDeleteUsuario.vue'
 import ModalViewUsuario from '@/components/modais/ModalViewUsuario.vue'
+import { Plus } from 'lucide-vue-next'
 
 /* ======================
    TIPOS
@@ -45,70 +44,56 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 /* ======================
-   UTILS
+   AUTH
 ====================== */
 const toast = useToast()
-const token = localStorage.getItem('token')
+
+// ✅ ID DO USUÁRIO LOGADO (vem do token)
+const usuarioLogadoId = ref<string>('')
+
+function carregarUsuarioLogado() {
+  const token = localStorage.getItem('token')
+  if (!token) return
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    usuarioLogadoId.value = payload.id
+  } catch {
+    usuarioLogadoId.value = ''
+  }
+}
 
 /* ======================
    LIFECYCLE
 ====================== */
-onMounted(carregarUsuarios)
+onMounted(() => {
+  carregarUsuarioLogado()
+  carregarUsuarios()
+})
 
 /* ======================
    METHODS
 ====================== */
 async function carregarUsuarios() {
-  loading.value = true
-
   const token = localStorage.getItem('token')
-
-  console.group('🔐 [USUÁRIOS] Requisição GET /usuarios')
-  console.log('Token no localStorage:', token)
-
   if (!token) {
-    console.error('❌ Nenhum token encontrado. Usuário não autenticado.')
     toast.error('Sessão expirada. Faça login novamente.')
-    loading.value = false
-    console.groupEnd()
     return
   }
 
+  loading.value = true
+
   try {
-    const response = await axios.get(
-      'http://localhost:8080/usuarios',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-
-    console.log('✅ Status:', response.status)
-    console.log('📦 Dados recebidos:', response.data)
-
+    const response = await axios.get('http://localhost:8080/usuarios', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     usuarios.value = response.data
-  } catch (error: any) {
-    console.error('❌ Erro ao buscar usuários')
-
-    if (error.response) {
-      console.error('Status:', error.response.status)
-      console.error('Mensagem:', error.response.data)
-    } else {
-      console.error('Erro desconhecido:', error.message)
-    }
-
-    if (error.response?.status === 401) {
-      toast.error('Não autorizado. Faça login novamente.')
-    } else {
-      toast.error('Erro ao carregar usuários')
-    }
+  } catch {
+    toast.error('Erro ao carregar usuários')
   } finally {
     loading.value = false
-    console.groupEnd()
   }
 }
-
 
 function abrirNovo() {
   showNew.value = true
@@ -131,15 +116,38 @@ function deletar(u: Usuario) {
 
 async function confirmarDelete(id: string) {
   try {
+    const token = localStorage.getItem('token')
+
+    if (!token) {
+      toast.error('Sessão expirada. Faça login novamente.')
+      return
+    }
+
     await axios.delete(`http://localhost:8080/usuarios/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
+
     toast.success('Usuário removido')
     carregarUsuarios()
-  } catch {
-    toast.error('Erro ao deletar usuário')
+
+  } catch (error: any) {
+    const status = error.response?.status
+
+    console.log('STATUS REAL:', status)
+
+    if (status === 403) {
+      toast.warning('Você não pode excluir o usuário que está logado')
+    } else if (status === 401) {
+      toast.error('Não autorizado. Faça login novamente.')
+    } else {
+      toast.error('Erro ao deletar usuário')
+    }
   }
 }
+
+
 
 /* ======================
    COMPUTEDS
@@ -156,15 +164,10 @@ const usuariosPaginados = computed(() => {
   return usuariosFiltrados.value.slice(start, start + pageSize.value)
 })
 
-/* ======================
-   WATCHERS
-====================== */
-// Sempre que pesquisar, volta para a página 1
 watch(searchQuery, () => {
   currentPage.value = 1
 })
 </script>
-
 
 <template>
   <div class="flex min-h-screen bg-background-light">
@@ -191,18 +194,21 @@ watch(searchQuery, () => {
         <SearchInput
           v-model="searchQuery"
           placeholder="Buscar por username..."
+          page="usuarios"
         />
 
         <TableUsuarios
-        :usuarios="usuariosPaginados"
+        :usuarios="usuariosPaginados"         
         :loading="loading"
         :currentPage="currentPage"
         :pageSize="pageSize"
+        :totalUsuarios="usuariosFiltrados.length"
         @changePage="page => currentPage = page"
         @view="visualizar"
         @edit="editar"
         @delete="deletar"
       />
+
 
 
 
@@ -217,10 +223,12 @@ watch(searchQuery, () => {
         />
 
         <ModalDeleteUsuario
-          v-model="showDelete"
-          :usuario="usuarioSelecionado"
-          @confirm="confirmarDelete"
-        />
+        v-model="showDelete"
+        :usuario="usuarioSelecionado"
+        :usuario-logado-id="usuarioLogadoId"
+        @confirm="confirmarDelete"
+      />
+
 
         <ModalEditUsuario
             v-model="showEdit"

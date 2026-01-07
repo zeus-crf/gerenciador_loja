@@ -9,6 +9,7 @@ const props = defineProps<{
   modelValue: string
   placeholder?: string
   filterType?: string // tipo de filtro (cliente, pedido, etc.)
+  page?: string
 }>()
 
 // ----------------------
@@ -18,6 +19,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'openFilter'): void
 }>()
+
+const page = props.page ?? 'default'
 
 // ----------------------
 // COMPUTED: Sincroniza v-model
@@ -52,6 +55,7 @@ const handleFilterClick = () => {
     <button
       class="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
       @click="handleFilterClick"
+      v-if="page !== 'usuarios'"
     >
       <Filter class="w-4 h-4" />
       Filtros
