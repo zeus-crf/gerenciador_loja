@@ -1,88 +1,37 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { Eye, Pencil, Trash2 } from 'lucide-vue-next'
 
-// ======================
-// Tipos
-// ======================
 interface Usuario {
   id: string
   username?: string
-  login?: string
 }
 
-// ======================
-// Props / Emits
-// ======================
+// Props
 const props = defineProps<{
   usuarios: Usuario[]
   loading: boolean
+  currentPage: number
+  pageSize: number
+  totalUsuarios: number
 }>()
 
-defineEmits(['view', 'edit', 'delete'])
+// Emits
+const emit = defineEmits<{
+  (e: 'view', usuario: Usuario): void
+  (e: 'edit', usuario: Usuario): void
+  (e: 'delete', usuario: Usuario): void
+  (e: 'changePage', page: number): void
+}>()
 
-// ======================
-// Estado local
-// ======================
-const usuariosLocal = ref<Usuario[]>([])
-
-// ======================
-// 🔍 LOGS PARA DEBUG
-// ======================
-watch(
-  () => props.usuarios,
-  (val) => {
-    console.log('[USUÁRIOS] Array recebido:', val)
-
-    if (val.length > 0) {
-      console.log('[USUÁRIOS] Primeiro usuário:', val[0])
-      console.log('[USUÁRIOS] Chaves:', Object.keys(val[0]))
-    }
-
-    usuariosLocal.value = [...val]
-  },
-  { immediate: true }
-)
-
-// ======================
 // Paginação
-// ======================
-const currentPage = ref(1)
-const pageSize = ref(8)
-
-const totalUsuarios = computed(() => usuariosLocal.value.length)
 const totalPages = computed(() =>
-  Math.ceil(totalUsuarios.value / pageSize.value)
+  props.totalUsuarios ? Math.ceil(props.totalUsuarios / props.pageSize) : 1
 )
 
-const usuariosPaginados = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return usuariosLocal.value.slice(start, start + pageSize.value)
-})
-
-const startItem = computed(() =>
-  totalUsuarios.value === 0
-    ? 0
-    : (currentPage.value - 1) * pageSize.value + 1
-)
-
-const endItem = computed(() =>
-  Math.min(currentPage.value * pageSize.value, totalUsuarios.value)
-)
-
-const goToPage = (page: number) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-  }
-}
-
-const nextPage = () => goToPage(currentPage.value + 1)
-const prevPage = () => goToPage(currentPage.value - 1)
-
-// Paginação inteligente (igual pedidos)
 const pagesToShow = computed<(number | string)[]>(() => {
   const total = totalPages.value
-  const current = currentPage.value
+  const current = props.currentPage
   const pages: (number | string)[] = []
 
   if (total <= 5) {
@@ -91,113 +40,102 @@ const pagesToShow = computed<(number | string)[]>(() => {
   }
 
   pages.push(1)
-
   if (current > 3) pages.push('...')
-
   const start = Math.max(2, current - 1)
   const end = Math.min(total - 1, current + 1)
-
   for (let i = start; i <= end; i++) pages.push(i)
-
   if (current < total - 2) pages.push('...')
-
   pages.push(total)
-
   return pages
 })
 
 const handlePageClick = (page: number | string) => {
-  if (typeof page === 'number') {
-    goToPage(page)
-  }
+  if (typeof page === 'number') emit('changePage', page)
 }
 
-watch(totalUsuarios, () => {
-  currentPage.value = 1
-})
+const prevPage = () => {
+  if (props.currentPage > 1) emit('changePage', props.currentPage - 1)
+}
+
+const nextPage = () => {
+  if (props.currentPage < totalPages.value) emit('changePage', props.currentPage + 1)
+}
+
+// Itens exibidos
+const startItem = computed(() =>
+  props.totalUsuarios === 0 ? 0 : (props.currentPage - 1) * props.pageSize + 1
+)
+
+const endItem = computed(() =>
+  Math.min(props.currentPage * props.pageSize, props.totalUsuarios)
+)
 </script>
 
 <template>
-  <div class="mt-4">
-    <div class="overflow-hidden rounded-xl border bg-white shadow">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y">
-          <!-- HEADER -->
-          <thead class="bg-slate-100">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase"
-              >
-                Username
-              </th>
-              <th
-                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase"
-              >
-                Ações
-              </th>
-            </tr>
-          </thead>
+  <div class="overflow-hidden rounded-xl border bg-white shadow mt-4">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y">
+        <thead class="bg-slate-100">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Username</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <!-- Loading -->
+          <tr v-if="props.loading">
+            <td colspan="2" class="px-6 py-4 text-center text-slate-500">Carregando...</td>
+          </tr>
 
-          <!-- BODY -->
-          <tbody class="divide-y">
-            <!-- LOADING -->
-            <tr v-if="loading">
-              <td
-                colspan="2"
-                class="px-6 py-4 text-center text-slate-500"
-              >
-                Carregando...
-              </td>
-            </tr>
+          <!-- Empty -->
+          <tr v-else-if="!props.loading && (!props.usuarios || props.usuarios.length === 0)">
+            <td colspan="2" class="px-6 py-4 text-center text-slate-500">Nenhum usuário encontrado</td>
+          </tr>
 
-            <!-- EMPTY -->
-            <tr v-else-if="!loading && usuarios.length === 0">
-              <td
-                colspan="2"
-                class="px-6 py-4 text-center text-slate-500"
-              >
-                Nenhum usuário encontrado
-              </td>
-            </tr>
+          <!-- Data -->
+          <tr v-else v-for="usuario in props.usuarios" :key="usuario.id" class="hover:bg-slate-50">
+            <td class="px-6 py-4 font-medium text-slate-900">{{ usuario.username }}</td>
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-3">
+                <button class="text-primary hover:text-slate-800" @click="$emit('view', usuario)">
+                  <Eye class="w-5 h-5" />
+                </button>
+                <button class="text-primary hover:text-primary-dark" @click="$emit('edit', usuario)">
+                  <Pencil class="w-5 h-5" />
+                </button>
+                <button class="text-red-600 hover:text-red-800" @click="$emit('delete', usuario)">
+                  <Trash2 class="w-5 h-5" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-            <!-- DATA -->
-            <tr
-              v-else
-              v-for="usuario in usuarios"
-              :key="usuario.id"
-              class="hover:bg-slate-50"
-            >
-              <td class="px-6 py-4 font-medium text-slate-900">
-                {{ usuario.username }}
-              </td>
+    <!-- Paginação -->
+    <div class="flex items-center justify-between border-t px-4 py-3 bg-slate-50">
+      <p class="text-sm text-slate-500">
+        <span v-if="props.totalUsuarios > 0">
+          Mostrando {{ startItem }} a {{ endItem }} de {{ props.totalUsuarios }}
+        </span>
+        <span v-else>Nenhum registro para exibir</span>
+      </p>
 
-              <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-3">
-                  <button
-                    class="text-primary hover:text-slate-800"
-                    @click="$emit('view', usuario)"
-                  >
-                    <Eye class="w-5 h-5" />
-                  </button>
+      <div class="flex items-center gap-1">
+        <button @click="prevPage" :disabled="props.currentPage === 1" class="px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50">‹</button>
 
-                  <button
-                    class="text-primary hover:text-primary-dark"
-                    @click="$emit('edit', usuario)"
-                  >
-                    <Pencil class="w-5 h-5" />
-                  </button>
+        <button
+          v-for="page in pagesToShow"
+          :key="page"
+          @click="handlePageClick(page)"
+          :class="page === props.currentPage
+            ? 'bg-primary text-white px-3 py-1 rounded'
+            : 'px-3 py-1 rounded hover:bg-slate-100'">
+          {{ page }}
+        </button>
 
-                  <button
-                    class="text-red-600 hover:text-red-800"
-                    @click="$emit('delete', usuario)"
-                  >
-                    <Trash2 class="w-5 h-5" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <button @click="nextPage" :disabled="props.currentPage === totalPages" class="px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50">›</button>
       </div>
     </div>
   </div>

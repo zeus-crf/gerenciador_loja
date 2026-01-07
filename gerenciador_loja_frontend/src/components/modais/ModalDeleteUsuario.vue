@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { X, Trash2 } from 'lucide-vue-next'
+import { X, Trash2, AlertTriangle } from 'lucide-vue-next'
 
 /* ======================
    TIPOS
@@ -16,6 +16,7 @@ interface Usuario {
 const props = defineProps<{
   modelValue: boolean
   usuario?: Usuario | null
+  usuarioLogadoId: string
 }>()
 
 const emit = defineEmits<{
@@ -31,14 +32,26 @@ const show = computed({
   set: v => emit('update:modelValue', v)
 })
 
-const close = () => (show.value = false)
+const close = () => {
+  show.value = false
+}
+
+/* ======================
+   REGRAS
+====================== */
+const ehUsuarioLogado = computed(() => {
+  if (!props.usuario || !props.usuarioLogadoId) return false
+  return props.usuario.id === props.usuarioLogadoId
+})
 
 const confirmar = () => {
-  if (props.usuario) {
-    emit('confirm', props.usuario.id)
-  }
+  if (!props.usuario) return
+  if (ehUsuarioLogado.value) return // 🚫 BLOQUEIO REAL
+
+  emit('confirm', props.usuario.id)
   close()
 }
+
 </script>
 
 <template>
@@ -72,12 +85,21 @@ const confirmar = () => {
 
         <p class="text-slate-700">
           Tem certeza que deseja excluir o usuário
-          <strong>{{ usuario?.username }}</strong>?
+          <strong>{{ usuario?.username ?? '—' }}</strong>?
         </p>
 
         <p class="mt-2 text-sm text-slate-500">
           Esta ação não poderá ser desfeita.
         </p>
+
+        <!-- ⚠️ AVISO -->
+        <div
+          v-if="ehUsuarioLogado"
+          class="mt-4 flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-3 text-sm text-yellow-800"
+        >
+          <AlertTriangle class="h-5 w-5" />
+          Você não pode excluir o usuário que está logado.
+        </div>
       </div>
 
       <!-- FOOTER -->
@@ -93,7 +115,10 @@ const confirmar = () => {
 
         <button
           @click="confirmar"
-          class="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+          :disabled="ehUsuarioLogado || !usuario"
+          class="flex items-center gap-2 rounded-lg px-4 py-2 text-white transition
+                 disabled:cursor-not-allowed disabled:bg-red-300
+                 bg-red-600 hover:bg-red-700"
         >
           <Trash2 class="h-4 w-4" />
           Excluir

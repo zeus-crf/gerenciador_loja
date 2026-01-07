@@ -171,7 +171,7 @@ const parcelasPercent = computed(() => {
         </div>
 
         <!-- Itens -->
-        <div class="rounded-xl border overflow-hidden">
+        <div class="rounded-xl border overflow">
           <div class="bg-gray-50 px-6 py-4 border-b">
             <h3 class="text-lg font-bold">Itens do Pedido</h3>
           </div>
